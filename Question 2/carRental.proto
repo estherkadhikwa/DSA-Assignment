@@ -1,0 +1,166 @@
+syntax = "proto3";
+package carrentalsystem;
+
+enum UserRole{
+    CUSTOMER = 0;
+    ADMIN = 1;
+}
+
+enum CarStatus {
+    AVAILABLE = 0;
+    UNAVAILABLE = 1;
+    RENTED = 2;
+}
+
+message User {
+    string user_id = 1;
+    string name = 2;
+    string email = 3;
+    string role = 4;
+    string phone = 5;
+}
+
+// NOTE: Assignment doesn't mention anything about password.
+// User_Id is for system, not the actual ID of the user (customer_Id) which car rental companies actually use.
+
+
+message Car {
+    string plate = 1;
+    string make = 2;
+    string model = 3;
+    int32 year = 4;
+    double daily_prince = 5;
+    int32 kilos = 6;
+    CarStatus status = 7;
+}
+
+message CartItem {
+    string plate = 1;
+    string start_date = 2;
+    string end_date = 3;
+    string customer_id = 4;
+}
+
+message Reservation {
+    string reservation_id = 1;
+    string customer_id = 2;
+    string plate = 3;
+    string start_date = 4;
+    string end_date = 5;
+    double total_prince = 6;
+    string booking_date = 7;
+    string status = 8;
+}
+
+message AddCarRequest {
+    string make = 1;
+    string model = 2;
+    int32 year = 3;
+    double daily_price = 4;
+    int32 mileage = 5;
+    string plate = 6;
+    CarStatus status = 7;
+}
+
+message CreateUsersRequest{
+    User user = 1;
+}
+
+message UpdateCarRequest {
+    string plate = 1;
+    string make = 2; 
+    string model = 3;
+    int32 year = 4;
+    double daily_price = 5;
+    int32 mileage = 6;
+    CarStatus status = 7;
+}
+
+message RemoveCarRequest {
+    string plate = 1;
+}
+
+message ListAvailableCarsRequest {
+    string filter_text = 1;
+    int32 filter_year = 2;
+}
+
+message SearchCarRequest {
+    string plate = 1;
+}
+
+message AddToCartRequest {
+    string customer_id = 1;
+    string plate = 2;
+    string start_date = 3;
+    string end_date = 4;
+}
+
+message PlaceReservationRequest {
+    string customer_id = 1;
+}
+
+message AddCarResponse {
+    bool success = 1;
+    string message = 2;
+    string car_id = 3; 
+}
+
+message CreateUsersResponse {
+    bool success = 1;
+    string message = 2;
+    int32 users_created = 3;
+}
+
+message UpdateCarResponse {
+    bool success = 1;
+    string message = 2;
+    Car updated_car = 3;
+}
+
+message RemoveCarResponse {
+    bool success = 1;
+    string message = 2;
+    repeated Car remaining_cars = 3;
+}
+
+message ListAvailableCarsResponse {
+    Car car = 1;
+}
+
+message SearchCarResponse {
+    bool found = 1;
+    string message = 2;
+    Car car = 3;
+}
+
+message AddToCartResponse {
+    bool success = 1;
+    string message = 2;
+    repeated CartItem cart_items = 3;
+}
+
+message PlaceReservationResponse {
+    bool success = 1;
+    string message = 2;
+    repeated Reservation reservations = 3;
+    double total_amount = 4;
+}
+
+service CarRentalService {
+    rpc AddCar(AddCarRequest) returns (AddCarResponse);
+    rpc CreateUsers(stream CreateUsersRequest) returns (CreateUsersResponse);
+    rpc UpdateCar(UpdateCarRequest) returns (UpdateCarResponse);
+    rpc RemoveCar(RemoveCarRequest) returns (RemoveCarResponse);
+    rpc ListAvailableCars(ListAvailableCarsRequest) returns (stream ListAvailableCarsResponse);
+    rpc SearchCar(SearchCarRequest) returns (SearchCarResponse);
+    rpc AddToCart(AddToCartRequest) returns (AddToCartResponse);
+    rpc PlaceReservation(PlaceReservationRequest) returns (PlaceReservationResponse);
+}
+
+
+
+
+
+
+
