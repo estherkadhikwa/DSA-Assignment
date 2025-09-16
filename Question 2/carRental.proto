@@ -14,15 +14,14 @@ enum CarStatus {
 
 message User {
     string user_id = 1;
-    string name = 2;
-    string email = 3;
-    string role = 4;
-    string phone = 5;
+    string user_name = 2;
+    string password = 3;
+    string name = 4;
+    string email = 5;
+    string customer_id = 6;
+    string phone = 7;
+    string role = 8;
 }
-
-// NOTE: Assignment doesn't mention anything about password.
-// User_Id is for system, not the actual ID of the user (customer_Id) which car rental companies actually use.
-
 
 message Car {
     string plate = 1;
@@ -148,6 +147,7 @@ message PlaceReservationResponse {
 }
 
 service CarRentalService {
+    rpc 
     rpc AddCar(AddCarRequest) returns (AddCarResponse);
     rpc CreateUsers(stream CreateUsersRequest) returns (CreateUsersResponse);
     rpc UpdateCar(UpdateCarRequest) returns (UpdateCarResponse);
