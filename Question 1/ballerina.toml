@@ -1,0 +1,6 @@
+org = "your_username"
+name = "asset.management.api"
+version = "0.1.0"
+
+[build-options]
+observabilityIncluded = true

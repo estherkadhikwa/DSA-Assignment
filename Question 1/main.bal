@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerina/time;
-
+import ballerina/lang.'string;
+import your_username/asset-management-api.types;
 
 // Define types for the asset management system
 enum Status {
@@ -8,6 +9,7 @@ enum Status {
     UNDER_REPAIR,
     DISPOSED
 }
+
 type Component record {| 
     string id;
     string name;
@@ -50,219 +52,200 @@ type Asset record {|
 final map<Asset> assetDB = {};
 
 // Service definition
-
 service /assets on new http:Listener(9090) {
-    resource function post .(http:Caller caller, http:Request req, Asset asset) returns error? {
+
+    // Create a new asset
+    resource function post .(@http:Payload Asset asset) returns http:Created|http:BadRequest {
         if assetDB.hasKey(asset.assetTag) {
-            return caller->respond({ message: "Asset with tag " + asset.assetTag + " already exists" });
+            return http:BadRequest("Asset with tag " + asset.assetTag + " already exists");
         }
         assetDB[asset.assetTag] = asset.cloneReadOnly();
-        return caller->respond({ message: "Asset created successfully" });
+        return http:Created("Asset created successfully");
     }
 
-    resource function get .(http:Caller caller, http:Request req) returns error? {
+    // Get all assets
+    resource function get .() returns Asset[]|http:NotFound {
         if assetDB.length() == 0 {
-            return caller->respond({ message: "No assets found" });
+            return http:NotFound("No assets found");
         }
-        Asset[] assets = assetDB.toArray();
-        json[] jsonAssets = []; 
-        foreach Asset asset in assets {
-            jsonAssets.push(<json>asset);
-        }
-        return caller->respond(jsonAssets);
+        return assetDB.toArray();
     }
 
-    resource function get assetTag(http:Caller caller, http:Request req, string assetTag) returns error? {
+    // Get asset by tag
+    resource function get ./[string assetTag]() returns Asset|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
-        Asset? asset = assetDB[assetTag];
-        if asset is Asset {
-            return caller->respond(<json>asset);
-        } else {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
-        }
+        return assetDB[assetTag];
     }
 
-    resource function put assetTag(http:Caller caller, http:Request req, string assetTag, Asset asset) returns error? {
+    // Update an asset
+    resource function put ./[string assetTag](@http:Payload Asset asset) returns http:Ok|http:BadRequest|http:NotFound {
         if assetTag != asset.assetTag {
-            return caller->respond({ message: "Asset tag in path does not match payload" });
+            return http:BadRequest("Asset tag in path does not match payload");
         }
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
         assetDB[assetTag] = asset.cloneReadOnly();
-        return caller->respond({ message: "Asset updated successfully" });
+        return http:Ok("Asset updated successfully");
     }
 
-    resource function delete assetTag(http:Caller caller, http:Request req, string assetTag) returns error? {
+    // Delete an asset
+    resource function delete ./[string assetTag]() returns http:Ok|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
         _ = assetDB.remove(assetTag);
-        return caller->respond({ message: "Asset deleted successfully" });
+        return http:Ok("Asset deleted successfully");
     }
 
-    resource function get faculty(http:Caller caller, http:Request req, string faculty) returns error? {
+    // Get assets by faculty
+    resource function get ./faculty/[string faculty]() returns Asset[]|http:NotFound {
         Asset[] facultyAssets = from var asset in assetDB.toArray()
             where asset.faculty == faculty
             select asset;
+        
         if facultyAssets.length() == 0 {
-            return caller->respond({ message: "No assets found for faculty " + faculty });
+            return http:NotFound("No assets found for faculty " + faculty);
         }
-        json[] jsonFacultyAssets = [];
-        foreach Asset asset in facultyAssets {
-            jsonFacultyAssets.push(<json>asset);
-        }
-        return caller->respond(jsonFacultyAssets);
+        return facultyAssets;
     }
 
-    resource function get overdue(http:Caller caller, http:Request req) returns error? {
-        time:Utc currentUtc = time:utcNow();
-        int currentMillis = currentUtc[0];
+    // Get assets with overdue maintenance
+    resource function get .//maintenance/overdue() returns Asset[]|http:NotFound {
+        time:Date currentDate = time:date(time:currentTime());
         Asset[] overdueAssets = [];
+        
         foreach var asset in assetDB.toArray() {
             foreach var schedule in asset.schedules {
-                int dueMillis = 0;
-                if schedule.nextDueDate.hasKey("time") {
-                    var maybeTime = schedule.nextDueDate["time"];
-                    if maybeTime is int {
-                        dueMillis = maybeTime;
-                    }
-                }
-                if dueMillis < currentMillis {
+                if schedule.nextDueDate < currentDate {
                     overdueAssets.push(asset);
                     break;
                 }
             }
         }
+        
         if overdueAssets.length() == 0 {
-            return caller->respond({ message: "No assets with overdue maintenance" });
+            return http:NotFound("No assets with overdue maintenance");
         }
-        json[] jsonOverdueAssets = [];
-        foreach Asset asset in overdueAssets {
-            jsonOverdueAssets.push(<json>asset);
-        }
-        return caller->respond(jsonOverdueAssets);
+        return overdueAssets;
     }
 
-    resource function post addComponent(http:Caller caller, http:Request req, string assetTag, Component component) returns error? {
+    // Add a component to an asset
+    resource function post .//[string assetTag]/components(@http:Payload Component component) returns http:Ok|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
-        Asset? assetOpt = assetDB[assetTag];
-        if assetOpt is Asset {
-            Asset asset = assetOpt.clone();
-            asset.components.push(component);
-            assetDB[assetTag] = asset.cloneReadOnly();
-            return caller->respond({ message: "Component added successfully" });
-        } else {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
-        }
+        
+        Asset asset = assetDB[assetTag].clone();
+        asset.components.push(component);
+        assetDB[assetTag] = asset.cloneReadOnly();
+        
+        return http:Ok("Component added successfully");
     }
 
-    resource function delete removeComponent(http:Caller caller, http:Request req, string assetTag, string componentId) returns error? {
+    // Remove a component from an asset
+    resource function delete .//[string assetTag]/components/[string componentId]() returns http:Ok|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
-        Asset? assetOpt = assetDB[assetTag];
-        if assetOpt is Asset {
-            Asset asset = assetOpt.clone();
-            int index = -1;
-            foreach int i in 0 ... asset.components.length() - 1 {
-                if asset.components[i].id == componentId {
-                    index = i;
-                    break;
-                }
+        
+        Asset asset = assetDB[assetTag].clone();
+        int index = -1;
+        
+        foreach int i in 0 ... asset.components.length() - 1 {
+            if asset.components[i].id == componentId {
+                index = i;
+                break;
             }
-            if index == -1 {
-                return caller->respond({ message: "Component with ID " + componentId + " not found" });
-            }
-            _ = asset.components.remove(index);
-            assetDB[assetTag] = asset.cloneReadOnly();
-            return caller->respond({ message: "Component removed successfully" });
-        } else {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
         }
+        
+        if index == -1 {
+            return http:NotFound("Component with ID " + componentId + " not found");
+        }
+        
+        _ = asset.components.remove(index);
+        assetDB[assetTag] = asset.cloneReadOnly();
+        
+        return http:Ok("Component removed successfully");
     }
 
-    resource function post addSchedule(http:Caller caller, http:Request req, string assetTag, MaintenanceSchedule schedule) returns error? {
+    // Add a maintenance schedule to an asset
+    resource function post .//[string assetTag]/schedules(@http:Payload MaintenanceSchedule schedule) returns http:Ok|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
-        Asset? assetOpt = assetDB[assetTag];
-        if assetOpt is Asset {
-            Asset asset = assetOpt.clone();
-            asset.schedules.push(schedule);
-            assetDB[assetTag] = asset.cloneReadOnly();
-            return caller->respond({ message: "Maintenance schedule added successfully" });
-        } else {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
-        }
+        
+        Asset asset = assetDB[assetTag].clone();
+        asset.schedules.push(schedule);
+        assetDB[assetTag] = asset.cloneReadOnly();
+        
+        return http:Ok("Maintenance schedule added successfully");
     }
 
-    resource function delete removeSchedule(http:Caller caller, http:Request req, string assetTag, string scheduleId) returns error? {
+    // Remove a maintenance schedule from an asset
+    resource function delete .//[string assetTag]/schedules/[string scheduleId]() returns http:Ok|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
-        Asset? assetOpt = assetDB[assetTag];
-        if assetOpt is Asset {
-            Asset asset = assetOpt.clone();
-            int index = -1;
-            foreach int i in 0 ... asset.schedules.length() - 1 {
-                if asset.schedules[i].id == scheduleId {
-                    index = i;
-                    break;
-                }
+        
+        Asset asset = assetDB[assetTag].clone();
+        int index = -1;
+        
+        foreach int i in 0 ... asset.schedules.length() - 1 {
+            if asset.schedules[i].id == scheduleId {
+                index = i;
+                break;
             }
-            if index == -1 {
-                return caller->respond({ message: "Schedule with ID " + scheduleId + " not found" });
-            }
-            _ = asset.schedules.remove(index);
-            assetDB[assetTag] = asset.cloneReadOnly();
-            return caller->respond({ message: "Maintenance schedule removed successfully" });
-        } else {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
         }
+        
+        if index == -1 {
+            return http:NotFound("Schedule with ID " + scheduleId + " not found");
+        }
+        
+        _ = asset.schedules.remove(index);
+        assetDB[assetTag] = asset.cloneReadOnly();
+        
+        return http:Ok("Maintenance schedule removed successfully");
     }
 
-    resource function post addWorkOrder(http:Caller caller, http:Request req, string assetTag, WorkOrder workOrder) returns error? {
+    // Add a work order to an asset
+    resource function post .//[string assetTag]/workorders(@http:Payload WorkOrder workOrder) returns http:Ok|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
-        Asset? assetOpt = assetDB[assetTag];
-        if assetOpt is Asset {
-            Asset asset = assetOpt.clone();
-            asset.workOrders.push(workOrder);
-            assetDB[assetTag] = asset.cloneReadOnly();
-            return caller->respond({ message: "Work order added successfully" });
-        } else {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
-        }
+        
+        Asset asset = assetDB[assetTag].clone();
+        asset.workOrders.push(workOrder);
+        assetDB[assetTag] = asset.cloneReadOnly();
+        
+        return http:Ok("Work order added successfully");
     }
 
-    resource function post addTask(http:Caller caller, http:Request req, string assetTag, string workOrderId, Task task) returns error? {
+    // Add a task to a work order
+    resource function post .//[string assetTag]/workorders/[string workOrderId]/tasks(@http:Payload Task task) returns http:Ok|http:NotFound {
         if !assetDB.hasKey(assetTag) {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
+            return http:NotFound("Asset with tag " + assetTag + " not found");
         }
-        Asset? assetOpt = assetDB[assetTag];
-        if assetOpt is Asset {
-            Asset asset = assetOpt.clone();
-            int woIndex = -1;
-            foreach int i in 0 ... asset.workOrders.length() - 1 {
-                if asset.workOrders[i].id == workOrderId {
-                    woIndex = i;
-                    break;
-                }
+        
+        Asset asset = assetDB[assetTag].clone();
+        int woIndex = -1;
+        
+        foreach int i in 0 ... asset.workOrders.length() - 1 {
+            if asset.workOrders[i].id == workOrderId {
+                woIndex = i;
+                break;
             }
-            if woIndex == -1 {
-                return caller->respond({ message: "Work order with ID " + workOrderId + " not found" });
-            }
-            asset.workOrders[woIndex].tasks.push(task);
-            assetDB[assetTag] = asset.cloneReadOnly();
-            return caller->respond({ message: "Task added successfully" });
-        } else {
-            return caller->respond({ message: "Asset with tag " + assetTag + " not found" });
         }
+        
+        if woIndex == -1 {
+            return http:NotFound("Work order with ID " + workOrderId + " not found");
+        }
+        
+        asset.workOrders[woIndex].tasks.push(task);
+        assetDB[assetTag] = asset.cloneReadOnly();
+        
+        return http:Ok("Task added successfully");
     }
 }
