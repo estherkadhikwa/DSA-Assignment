@@ -1,116 +1,123 @@
-
 import ballerina/http;
 import ballerina/io;
 import ballerina/time;
-
-// Type definitions (should match service)
-enum Status {
-    ACTIVE,
-    UNDER_REPAIR,
-    DISPOSED
-}
-
-type Component record {| 
-    string id;
-    string name;
-    string description;
-|};
-
-type MaintenanceSchedule record {| 
-    string id;
-    string description;
-    string frequency;
-    time:Date nextDueDate;
-|};
-
-type Task record {| 
-    string id;
-    string description;
-    boolean completed;
-|};
-
-type WorkOrder record {| 
-    string id;
-    string description;
-    Status status;
-    Task[] tasks;
-|};
-
-type Asset record {| 
-    string assetTag;
-    string name;
-    string faculty;
-    string department;
-    Status status;
-    time:Date acquiredDate;
-    Component[] components;
-    MaintenanceSchedule[] schedules;
-    WorkOrder[] workOrders;
-|};
+import your_username/asset-management-api.types;
 
 const string BASE_URL = "http://localhost:9090/assets";
 
-// Example: Create an asset
-    http:Client client = check new http:Client(BASE_URL);
-    var resp = check client.post(".", asset);
-    io:println("Create Asset Response: ", resp.getJsonPayload());
+// Function to create an asset
+function createAsset(Asset asset) returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->post("/", asset);
+    io:println("Create Asset Response: ", resp.statusCode, " - ", resp.getTextPayload());
 }
 
-// Example: Get all assets
-    http:Client client = check new http:Client(BASE_URL);
-    var resp = check client.get(".");
+// Function to get all assets
+function getAllAssets() returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->get("/");
     io:println("Get All Assets Response: ", resp.getJsonPayload());
 }
 
-// Example: Get asset by tag
-    http:Client client = check new http:Client(BASE_URL);
-    var resp = check client.get("/" + assetTag);
+// Function to get asset by tag
+function getAssetByTag(string assetTag) returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->get("/" + assetTag);
     io:println("Get Asset By Tag Response: ", resp.getJsonPayload());
 }
 
-// Example: Update asset
-    http:Client client = check new http:Client(BASE_URL);
-    var resp = check client.put("/" + assetTag, asset);
-    io:println("Update Asset Response: ", resp.getJsonPayload());
+// Function to update asset
+function updateAsset(string assetTag, Asset asset) returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->put("/" + assetTag, asset);
+    io:println("Update Asset Response: ", resp.statusCode, " - ", resp.getTextPayload());
 }
 
-// Example: Delete asset
-    http:Client client = check new http:Client(BASE_URL);
-    var resp = check client.delete("/" + assetTag);
-    io:println("Delete Asset Response: ", resp.getJsonPayload());
+// Function to delete asset
+function deleteAsset(string assetTag) returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->delete("/" + assetTag);
+    io:println("Delete Asset Response: ", resp.statusCode, " - ", resp.getTextPayload());
 }
 
-// Example: Get assets by faculty
-    http:Client client = check new http:Client(BASE_URL);
-    var resp = check client.get("/faculty/" + faculty);
+// Function to get assets by faculty
+function getAssetsByFaculty(string faculty) returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->get("/faculty/" + faculty);
     io:println("Get Assets By Faculty Response: ", resp.getJsonPayload());
 }
 
-// Example: Get overdue assets
-    http:Client client = check new http:Client(BASE_URL);
-    var resp = check client.get("/overdue");
+// Function to get overdue assets
+function getOverdueAssets() returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->get("/maintenance/overdue");
     io:println("Get Overdue Assets Response: ", resp.getJsonPayload());
+}
+
+// Function to add a component
+function addComponent(string assetTag, Component component) returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->post("/" + assetTag + "/components", component);
+    io:println("Add Component Response: ", resp.statusCode, " - ", resp.getTextPayload());
+}
+
+// Function to add a maintenance schedule
+function addSchedule(string assetTag, MaintenanceSchedule schedule) returns error? {
+    http:Client client = check new (BASE_URL);
+    http:Response resp = check client->post("/" + assetTag + "/schedules", schedule);
+    io:println("Add Schedule Response: ", resp.statusCode, " - ", resp.getTextPayload());
 }
 
 public function main() returns error? {
     // Example asset
+    time:Date acquiredDate = check time:dateFromString("2024-03-10");
     Asset asset = {
         assetTag: "A001",
         name: "Projector",
         faculty: "Engineering",
         department: "Electrical",
-        status: Status.ACTIVE,
-        acquiredDate: time:currentTime().toDate(),
+        status: ACTIVE,
+        acquiredDate: acquiredDate,
         components: [],
         schedules: [],
         workOrders: []
     };
 
+    // Test all operations
     check createAsset(asset);
     check getAllAssets();
     check getAssetByTag("A001");
+    
+    // Update the asset
+    asset.name = "Updated Projector";
     check updateAsset("A001", asset);
+    
     check getAssetsByFaculty("Engineering");
     check getOverdueAssets();
+    
+    // Add a component
+    Component component = {
+        id: "COMP-001",
+        name: "Lens",
+        description: "Projector lens component"
+    };
+    check addComponent("A001", component);
+    
+    // Add a maintenance schedule
+    time:Date nextDueDate = check time:dateFromString("2024-06-15");
+    MaintenanceSchedule schedule = {
+        id: "SCHED-001",
+        description: "Quarterly maintenance",
+        frequency: "QUARTERLY",
+        nextDueDate: nextDueDate
+    };
+    check addSchedule("A001", schedule);
+    
+    // Get asset again to see changes
+    check getAssetByTag("A001");
+    
+    // Finally delete the asset
     check deleteAsset("A001");
+    
+    io:println("All operations completed successfully!");
 }
