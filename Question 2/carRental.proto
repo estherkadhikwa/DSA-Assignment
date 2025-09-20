@@ -14,7 +14,7 @@ enum CarStatus {
 
 message User {
     string user_id = 1;
-    string user_name = 2;
+    string username = 2;
     string password = 3;
     string name = 4;
     string email = 5;
@@ -24,13 +24,15 @@ message User {
 }
 
 message Car {
-    string plate = 1;
-    string make = 2;
-    string model = 3;
-    int32 year = 4;
-    double daily_prince = 5;
-    int32 kilos = 6;
-    CarStatus status = 7;
+    string car_id = 1;
+    string plate = 2;
+    string make = 3;
+    string model = 4;
+    string category = 5;
+    int32 year = 6;
+    double daily_rate = 7;
+    int32 kilos = 8;
+    CarStatus status = 9;
 }
 
 message CartItem {
@@ -56,7 +58,7 @@ message AddCarRequest {
     string model = 2;
     int32 year = 3;
     double daily_price = 4;
-    int32 mileage = 5;
+    int32 kilos = 5;
     string plate = 6;
     CarStatus status = 7;
 }
@@ -71,7 +73,7 @@ message UpdateCarRequest {
     string model = 3;
     int32 year = 4;
     double daily_price = 5;
-    int32 mileage = 6;
+    int32 kilos = 6;
     CarStatus status = 7;
 }
 
@@ -146,8 +148,23 @@ message PlaceReservationResponse {
     double total_amount = 4;
 }
 
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    bool success = 1;
+    string message = 2;
+    string user_id = 3;
+    string username = 4;
+    UserRole role = 5;
+    string token = 6;
+
+}
+
 service CarRentalService {
-    rpc 
+    rpc Login(LoginRequest) returns (LoginResponse);
     rpc AddCar(AddCarRequest) returns (AddCarResponse);
     rpc CreateUsers(stream CreateUsersRequest) returns (CreateUsersResponse);
     rpc UpdateCar(UpdateCarRequest) returns (UpdateCarResponse);
