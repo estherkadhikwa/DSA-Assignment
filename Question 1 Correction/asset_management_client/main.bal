@@ -68,6 +68,4 @@ function printJson(string title, json payload) {
     io:println();
 }
 
-{
-    
-}
+
