@@ -1,13 +1,19 @@
 # DSA Assignment 1
 
-**Course Title:** Distributed Systems and Applications **Course Code:** DSA612S **Assessment:** First Assignment **Released on:** 27/08/2025. **Due date:** 21/09/ 2025 at 23h59 **Total Marks:** 100
+**Course Title:** Distributed Systems and Applications
+**Course Code:** DSA612S 
+**Assessment:** First Assignment 
+**Released on:** 27/08/2025
+**Due date:** 21/09/ 2025 at 23h59
+**Total Marks:** 100
 
 ## Group Members
 Chantelle van Wyk - 212087312
 Nicole Fillipus - 215034821
 Esther Kadhikwa 222091789
 Billy Mafenyeho - 219099588
-Enzo JAntjeis 216097975
+Danjumuka Amenenge - 218062931
+Enzo Jantjies -216097975
 
 
 NOTE: 100% AI-generated codes will be awarded a zero. AI tools should be used as a guide only.
