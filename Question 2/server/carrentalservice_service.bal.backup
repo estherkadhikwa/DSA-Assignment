@@ -1,0 +1,34 @@
+import ballerina/grpc;
+
+listener grpc:Listener ep = new (9090);
+
+@grpc:Descriptor {value: CARRENTAL_DESC}
+service "CarRentalService" on ep {
+
+    remote function Login(LoginRequest value) returns LoginResponse|error {
+    }
+
+    remote function AddCar(AddCarRequest value) returns AddCarResponse|error {
+    }
+
+    remote function UpdateCar(UpdateCarRequest value) returns UpdateCarResponse|error {
+    }
+
+    remote function RemoveCar(RemoveCarRequest value) returns RemoveCarResponse|error {
+    }
+
+    remote function SearchCar(SearchCarRequest value) returns SearchCarResponse|error {
+    }
+
+    remote function AddToCart(AddToCartRequest value) returns AddToCartResponse|error {
+    }
+
+    remote function PlaceReservation(PlaceReservationRequest value) returns PlaceReservationResponse|error {
+    }
+
+    remote function CreateUsers(stream<CreateUsersRequest, grpc:Error?> clientStream) returns CreateUsersResponse|error {
+    }
+
+    remote function ListAvailableCars(ListAvailableCarsRequest value) returns stream<ListAvailableCarsResponse, error?>|error {
+    }
+}
