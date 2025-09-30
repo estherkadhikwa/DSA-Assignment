@@ -10,7 +10,7 @@
 ## Group Members <br>
 Chantelle van Wyk - 212087312 <br>
 Nicole Fillipus - 215034821 <br>
-Esther Kadhikwa 222091789 <br>
+Esther Kadhikwa- 222091789 <br>
 Billy Mafenyeho - 219099588 <br>
 Danjumuka Amenenge - 218062931 <br>
 Enzo Jantjies -216097975 <br>
